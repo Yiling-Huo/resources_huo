@@ -1,6 +1,6 @@
-# Resources Yiling Huo
+# Resources
 
-Scripts and resorces that I have created. 
+Scripts and resorces that I have created or modified. 
 
 **Praat_scripts:**
   - Add_silence_using_textgrids:
