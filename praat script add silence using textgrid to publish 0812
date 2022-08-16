@@ -1,0 +1,163 @@
+# Praat script Create Speech Stimulus Onset Asynchrony (SOA) Stimuli using Textgrids
+# inspired by script by Daniel Hirst and Zhenghan Qi
+# created by Yiling Huo
+# 12 Aug 2022
+
+# What this script does:
+#   load sound file
+#   load textgrid file
+#   extract every non-empty interval as separate sound object
+#   calculate how much silence is needed and create silent sound object
+#     or speed up the sound if sound is longer than SOA, making sure there is at least some silence at the end
+#     there is also an option to not slow down the longer sound but simply put the minimum silence at the end
+#   concatenate everything into a new sound and save sound file
+#   create a txt file containing the begin time and end time of each interval of the new stimuli
+# Note: a 10ms silence will be created at the beginning of each sound file.
+
+# Requirements:
+# 1. .wav files and .TextGrid files should be in the same folder
+# 2. Output folder(s) must exist already
+# 3. Textgrid requirements:
+#    a. each stimulus within a sound file must be indicated by an interval with a unique name
+#    b. if working with speech material and need punctuation, all punctuation intervals should be named the same
+
+################
+
+# create form (UI window to set parameters)
+form Insert silence using textgrid
+comment Note: Directories should NOT contain final "\"
+comment 
+comment This is where your sound and textgrid files are:
+text file_directory C:\my input directory
+comment This is where you want the new stimuli to be saved (The directory has to exist already):
+text save_directory C:\my output directory
+comment This is the directory and name of your output txt file:
+text txt_output C:\my output directory\key.txt
+comment How to rename your sound files:
+comment E.g., if you put down '_s', '1.wav' will be renamed '1_s.wav'.
+text new_sound_file_name_ending 
+comment Which interval should we look at?
+real critical_interval_number 1
+comment What is your Stimulus Onset Asynchrony (SOA) (seconds)?
+real soa_in_seconds 0.8
+comment If allow overtime, an interval that is longer than SOA will be kept its length, 
+comment minimum silence will be added at the end. 
+comment If disallow overtime, longer interval will be shortened such that duration + min silence = SOA.
+boolean allow_overtime 1
+comment How long is your minimum silence (seconds)?
+real minimum_silence_duration_seconds 0.03
+comment What is the interval name that indicate punctuaion?
+text punctuation_name p
+comment How long should punctuation be in your new stimuli (seconds)?
+real punctuation_duration 0.3
+endform
+
+# create the output txt file
+writeFileLine: txt_output$, "filename", " ", "n", " ", "interval_name", " ", "on", " ", "off"
+
+# get the list of wav files in the directory
+Create Strings as file list... list 'file_directory$'\*.wav
+numberOfFiles = Get number of strings
+maxtime = soa_in_seconds - minimum_silence_duration_seconds
+
+# loop through the files
+for ifile from 1 to numberOfFiles
+   Create Strings as file list... list 'file_directory$'\*.wav
+   select Strings list
+   fileName$ = Get string... ifile
+   textgridName$ = fileName$ - ".wav" + ".TextGrid"
+   mySound = Read from file... 'file_directory$'\'fileName$'
+   samplingFrequency = Get sampling frequency
+   myText = Read from file... 'file_directory$'\'textgridName$'
+   select mySound
+   plus myText
+   Extract non-empty intervals... critical_interval_number no
+   select myText
+   intervalnumber = Count intervals where... critical_interval_number "is not equal to" ""
+
+   x = 0
+
+   # create a 10ms silence to be added to the beginning of sentence
+   allSound = Create Sound from formula... silence 1 0 0.01 samplingFrequency 0
+   segmentDuration = Get total duration
+   appendFileLine: txt_output$, fileName$, " ", x, " ", "00", " ", 0, " ", segmentDuration
+
+   # for loop to add appropriate silence and attach to the end of allSound
+   for n from 1 to intervalnumber
+      select myText
+      name$ = Get label of interval... critical_interval_number n
+      if name$ = ""
+      elsif name$ = punctuation_name$
+         myPunctuation = Create Sound from formula... silence 1 0 punctuation_duration samplingFrequency 0
+         select allSound
+         plus myPunctuation
+         allSound = Concatenate
+         x = x+1
+         preDuration = segmentDuration
+         segmentDuration = Get total duration
+         appendFileLine: txt_output$, fileName$, " ", x, " ", name$, " ", preDuration, " ", segmentDuration
+      else
+         intervalname$ = "Sound " + name$
+         select 'intervalname$'
+         soundDuration = Get total duration
+         if soundDuration < maxtime
+            silenceDuration = soa_in_seconds - soundDuration
+            mySilence = Create Sound from formula... silence 1 0 silenceDuration samplingFrequency 0
+            select 'intervalname$'
+            plus mySilence
+            myNewSound = Concatenate
+            select allSound
+            plus myNewSound
+            allSound = Concatenate
+            x = x+1
+            preDuration = segmentDuration
+            segmentDuration = Get total duration
+            appendFileLine: txt_output$, fileName$, " ", x, " ", name$, " ", preDuration, " ", segmentDuration
+         else
+            if allow_overtime = 1
+               mySilence = Create Sound from formula... silence 1 0 minimum_silence_duration_seconds samplingFrequency 0
+               select 'intervalname$'
+               plus mySilence
+               myNewSound = Concatenate
+               select allSound
+               plus myNewSound
+               allSound = Concatenate
+               x = x+1
+               preDuration = segmentDuration
+               segmentDuration = Get total duration
+               appendFileLine: txt_output$, fileName$, " ", x, " ", name$, " ", preDuration, " ", segmentDuration
+            else
+               select 'intervalname$'
+               rate = maxtime/soundDuration
+               To Manipulation... 0.01 50 1000
+               Create DurationTier: "shorten", 0, soundDuration
+               Add point: 0, rate
+               manipulationName$ = "Manipulation " + name$
+               plus 'manipulationName$'
+               Replace duration tier
+               select 'manipulationName$'
+               myNewSpeech = Get resynthesis (overlap-add)
+               newDuration = Get total duration
+               silenceDuration = soa_in_seconds - newDuration
+               mySilence = Create Sound from formula... silence 1 0 silenceDuration samplingFrequency 0
+               select 'intervalname$'
+               plus mySilence
+               myNewSound = Concatenate
+               select allSound
+               plus myNewSound
+               allSound = Concatenate
+               x = x+1
+               preDuration = segmentDuration
+               segmentDuration = Get total duration
+               appendFileLine: txt_output$, fileName$, " ", x, " ", name$, " ", preDuration, " ", segmentDuration
+            endif
+         endif
+      endif
+   endfor
+   
+   newFileName$ = fileName$ - ".wav" + new_sound_file_name_ending$ + ".wav"
+   select allSound
+   Write to WAV file... 'save_directory$'\'newFileName$'
+   select all
+   Remove
+endfor
