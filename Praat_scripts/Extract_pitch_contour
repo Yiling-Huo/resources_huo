@@ -22,7 +22,6 @@
 form Extract pitch contour
     integer Tier_number 1
     word Sound_file_extension .wav
-    text Result_output_folder C:\my output directory\
     sentence Result_file_name pitch.csv
     comment Pitch parameters:
     real Time_steps 0.0
@@ -30,10 +29,6 @@ form Extract pitch contour
     integer Pitch_ceiling 600
     comment Press OK to choose a directory of sound files and textgrid files.
 endform
-
-createFolder: result_output_folder$
-outfile$ = result_output_folder$ + result_file_name$
-writeFileLine: outfile$, "file,interval_number,interval_name,n,time,pitch"
 
 procedure getTextGrid: .soundfile$
     .path$ = replace$: .soundfile$, sound_file_extension$, ".TextGrid", 0
@@ -53,6 +48,8 @@ procedure getFiles: .dir$, .ext$
 endproc
 
 directory$ = chooseDirectory$: "Choose your directory:"
+outfile$ = directory$ + result_file_name$
+writeFileLine: outfile$, "file,interval_number,interval_name,n,time,pitch"
 @getFiles: directory$, sound_file_extension$
 
 for i to getFiles.length
