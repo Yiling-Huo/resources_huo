@@ -1,0 +1,86 @@
+# Created by Yiling Huo 30/09/2022
+# File selection procedure from Scott Seyfarth annotation.Praat (https://gist.github.com/scjs/ffbbba71cc8b3ff9d0476c82b2df9d0f)
+# What this script does:
+# 1. Takes sound files and textgrid files with the same name, 
+# 2. extract all intervals with a name in the selected tier,
+# 3. divide each interval into 10 equal-length mini-intervals, 
+# 4. extract pitch at each boundary of the mini-intervals, 
+# 5. and save all the pitch information in a csv file.
+
+# What this script is good for:
+# Extract pitch contour information (e.g. lexical tone) for further analysis. 
+
+# Parameters:
+# Tier number: number of tier your intervals are in
+# Sound file extensions: The extension of sould files in your folder (e.g.: .wav)
+# Result output folder: folder to safe the output csv file. The folder must end with '\'
+# Result file name: name of the result file
+# Time steps: (standard value: 0.0) the measurement interval (frame duration), in seconds. If you supply 0, Praat will use a time step of 0.75 / (pitch floor), e.g. 0.01 seconds if the pitch floor is 75 Hz; in this example, Praat computes 100 pitch values per second.
+# Pitch floor: (standard value: 75 Hz) candidates below this frequency will not be recruited. This parameter determines the length of the analysis window: it will be 3 longest periods long, i.e., if the pitch floor is 75 Hz, the window will be 3/75 = 0.04 seconds long.
+# Pitch ceiling: (standard value: 600 Hz) candidates above this frequency will be ignored.
+
+form Extract pitch contour
+    integer Tier_number 1
+    word Sound_file_extension .wav
+    text Result_output_folder C:\my output directory\
+    sentence Result_file_name pitch.csv
+    comment Pitch parameters:
+    real Time_steps 0.0
+    integer Pitch_floor 75
+    integer Pitch_ceiling 600
+    comment Press OK to choose a directory of sound files and textgrid files.
+endform
+
+createFolder: result_output_folder$
+outfile$ = result_output_folder$ + result_file_name$
+writeFileLine: outfile$, "file,interval_number,interval_name,n,time,pitch"
+
+procedure getTextGrid: .soundfile$
+    .path$ = replace$: .soundfile$, sound_file_extension$, ".TextGrid", 0
+    .textgrid = Read from file: .path$
+endproc
+
+procedure getFiles: .dir$, .ext$
+    .obj = Create Strings as file list: "files", .dir$ + "/*" + .ext$
+    .length = Get number of strings
+
+    for .i to .length
+        .fname$ = Get string: .i
+        .files$ [.i] = .dir$ + "/" + .fname$
+    endfor
+
+    removeObject: .obj
+endproc
+
+directory$ = chooseDirectory$: "Choose your directory:"
+@getFiles: directory$, sound_file_extension$
+
+for i to getFiles.length
+    soundfile = Read from file: getFiles.files$ [i]
+    filename$ = selected$("Sound")
+
+    @getTextGrid: getFiles.files$ [i]
+
+    interval_count = Get number of intervals: tier_number
+    intervals# = from_to#(1, interval_count)
+    
+    for j from 1 to size(intervals#)
+        selectObject: getTextGrid.textgrid
+        intervaln$ = string$(intervals#[j])
+        intervalname$ = Get label of interval: tier_number, intervals#[j]
+        t0 = Get starting point: tier_number, intervals#[j]
+        t10 = Get end point: tier_number, intervals#[j]
+        tj = (t10-t0)/10
+
+        selectObject: soundfile
+        To Pitch: time_steps, pitch_floor, pitch_ceiling
+        for k from 0 to 10
+            t = t0 + k*tj
+            pitch = Get value at time: t, "Hertz", "linear"
+            appendFileLine: outfile$, "'filename$', 'intervaln$', 'intervalname$', 'k', 't', 'pitch'"
+        endfor
+    endfor
+
+    select all
+    Remove
+endfor
