@@ -48,7 +48,7 @@ procedure getFiles: .dir$, .ext$
 endproc
 
 directory$ = chooseDirectory$: "Choose your directory:"
-outfile$ = directory$ + result_file_name$
+outfile$ = directory$ + "\" + result_file_name$
 writeFileLine: outfile$, "file,interval_number,interval_name,n,time,pitch"
 @getFiles: directory$, sound_file_extension$
 
