@@ -35,9 +35,9 @@ comment This is the directory and name of your output txt file:
 text txt_output C:\my output directory\key.txt
 comment How to rename your sound files:
 comment E.g., if you put down '_s', '1.wav' will be renamed '1_s.wav'.
-text new_sound_file_name_ending 
-comment Which interval should we look at?
-real critical_interval_number 1
+sentence new_sound_file_name_ending 
+comment Which tier should we look at?
+real critical_tier_number 1
 comment What is your Stimulus Onset Asynchrony (SOA) (seconds)?
 real soa_in_seconds 0.8
 comment If allow overtime, an interval that is longer than SOA will be kept its length, 
@@ -71,9 +71,9 @@ for ifile from 1 to numberOfFiles
    myText = Read from file... 'file_directory$'\'textgridName$'
    select mySound
    plus myText
-   Extract non-empty intervals... critical_interval_number no
+   Extract non-empty intervals... critical_tier_number no
    select myText
-   intervalnumber = Count intervals where... critical_interval_number "is not equal to" ""
+   intervalnumber = Count intervals where... critical_tier_number "is not equal to" ""
 
    x = 0
 
@@ -85,7 +85,7 @@ for ifile from 1 to numberOfFiles
    # for loop to add appropriate silence and attach to the end of allSound
    for n from 1 to intervalnumber
       select myText
-      name$ = Get label of interval... critical_interval_number n
+      name$ = Get label of interval... critical_tier_number n
       if name$ = ""
       elsif name$ = punctuation_name$
          myPunctuation = Create Sound from formula... silence 1 0 punctuation_duration samplingFrequency 0
