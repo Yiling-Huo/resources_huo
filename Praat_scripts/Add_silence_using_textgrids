@@ -16,8 +16,7 @@
 
 # Requirements:
 # 1. .wav files and .TextGrid files should be in the same folder
-# 2. Output folder(s) must exist already
-# 3. Textgrid requirements:
+# 2. Textgrid requirements:
 #    a. each stimulus within a sound file must be indicated by an interval with a unique name
 #    b. if working with speech material and need punctuation, all punctuation intervals should be named the same
 
@@ -31,8 +30,8 @@ comment This is where your sound and textgrid files are:
 text file_directory C:\my input directory
 comment This is where you want the new stimuli to be saved (The directory has to exist already):
 text save_directory C:\my output directory
-comment This is the directory and name of your output txt file:
-text txt_output C:\my output directory\key.txt
+comment This is the name of your output txt file:
+sentence txt_file_name key.txt
 comment How to rename your sound files:
 comment E.g., if you put down '_s', '1.wav' will be renamed '1_s.wav'.
 sentence new_sound_file_name_ending 
@@ -47,12 +46,14 @@ boolean allow_overtime 1
 comment How long is your minimum silence (seconds)?
 real minimum_silence_duration_seconds 0.03
 comment What is the interval name that indicate punctuaion?
-text punctuation_name p
+sentence punctuation_name p
 comment How long should punctuation be in your new stimuli (seconds)?
 real punctuation_duration 0.3
 endform
 
 # create the output txt file
+createFolder: save_directory$
+txt_output$ = save_directory$ + txt_file_name$
 writeFileLine: txt_output$, "filename", " ", "n", " ", "interval_name", " ", "on", " ", "off"
 
 # get the list of wav files in the directory
