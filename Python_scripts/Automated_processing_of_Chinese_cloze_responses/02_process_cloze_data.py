@@ -26,6 +26,7 @@ outputFile = 'cloze_results.csv'
 responseColumn = 'response' # the column name of responses
 sentenceColumn = 'sentence' # column name of sentence frame
 
+inputFormat = 'utf-8' # input format. Default utf-8
 outputFormat = 'utf-8-sig' # output format. Default outputs a utf-8 csv file with BOM to read easily in MS Excel
 
 header = ['sentence', 'response', 'count', 'cloze_probability', 'number_of_response'] # header of the output file
@@ -45,7 +46,7 @@ with open(os.getcwd() + '/index/index.csv', 'r', encoding = 'utf-8') as ind:
 # process cloze data
 print('Processing cloze data...')
 # load data
-with open(inputFile, 'r', encoding = 'utf-8') as fin:
+with open(inputFile, 'r', encoding = inputFormat) as fin:
     cr = csv.reader(fin)
     filecontents = [line for line in cr]
     print('Data loaded.')
